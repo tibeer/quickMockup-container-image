@@ -1,0 +1,43 @@
+---
+name: Build quickMockup
+
+"on":
+  workflow_dispatch:
+  push:
+    branches:
+      - 'main'
+    paths:
+      - 'Containerfile'
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Clone current repository
+        uses: actions/checkout@v4
+
+      - name: Clone jdittrich/quickMockup
+        uses: actions/checkout@v4
+        with:
+          repository: jdittrich/quickMockup
+          path: quickMockup
+          ref: v0.x
+
+      - name: Build using buildah
+        id: build
+        uses: redhat-actions/buildah-build@v2
+        with:
+          image: ghcr.io/tibeer/quickmockup
+          tags: ghcr.io/tibeer/quickmockup:latest
+          platforms: linux/amd64, linux/arm64
+          containerfiles: |
+            ./Containerfile
+
+      - name: Push to ghcr.io
+        uses: redhat-actions/push-to-registry@v2
+        with:
+          image: ${{ steps.build.outputs.image }}
+          tags: ${{ steps.build.outputs.tags }}
+          registry: ghcr.io
+          username: ${{ github.repository_owner }}
+          password: ${{ github.token }}
